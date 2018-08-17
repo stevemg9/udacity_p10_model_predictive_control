@@ -11,16 +11,32 @@ Self-Driving Car Engineer Nanodegree Program
 
 The goal of this project was to develop a Model Predictive Control algorithm to successfully drive a vehicle around the simulate track.  The first step in tackling this problem was to create the model.  In oder to create the model I largely followed the examples and quizzes given in the MPC lessons.  The state vector consisted of 5 variables: X Position, Y Position, Vehicle Orientation, Velocity, Cross Track Error, and Orientation Error. The actuators for this model were acceleration (throttle), and orientation (steering).
 
-![Eqn 1](equation_images/eqn1.png =150x)
+$$
+state = \begin{bmatrix}
+x \\
+y \\
+\psi \\
+v \\
+cte \\
+\psi_{err} \\
+\end{bmatrix}
+$$
 
 The state was updated each time step with the following equations:
 
-![Eqn 2](equation_images/eqn2.png =375x)
-
+$$
+x_{t+1} = x_t + v_t cos(\psi_t) dt \\
+y_{t+1} = y_t + v_t sin(\psi_t) dt \\
+\psi_{t+1} = \psi_t + \frac{v_t}{L_f} \delta_t dt \\
+v_{t+1} = v_t + a_t dt \\
+cte_{t+1} = f(x_t) - y_t + v_t sin(\psi_e) dt \\
+\psi_{err_{t+1}} = \psi_t - \psi_{des_{t}} + \frac{v_t}{L_f} \delta_t dt \\
+$$
 Where,
-
-![Eqn 3](equation_images/eqn3.png =350x)
-
+$$
+f(t) = c_0 + c_1 x + c_2 x^2 + c_3 x^3 \\
+\psi_{des} = atan(c_1 + 2 c_2 x_t + 3 c_3 x_t^2)
+$$
 And C0 - C3 are the coefficients for the 3rd order polynomial line fitted by polyfit.
 
 When it came to choosing time steps (N) and the amount of time between steps (dt) I had to do a bit of experimentation.  My original thought was to make the total prediction horizon 4 seconds. My first attempt was N=20 and dt = 2.  This did not work well as the vehicle would plan too far in advance and initiate turns too early and end up cutting the inside corner of turns.  My next thought was to keep the number of time steps the same but lower the prediction horizon to 2 seconds with N = 20 and dt = 0.1.  Still the vehicle was predicting too far ahead and would initiate turns too early.  I knocked N down to 15 and eventually just kept working my way down.  I was surprised that such a low number yielded better results.  My initial thinking was that predicting a path farther out in time would yield more accurate path planning, but the opposite proved true.  My final values were N=7 and dt = 0.1 so the vehicle was only planning 0.7 second in the future.
@@ -28,8 +44,10 @@ When it came to choosing time steps (N) and the amount of time between steps (dt
 The only preprocessing that I did on the waypoints was to convert them into the vehicle's local coordinate frame.  This way the vehicle was always at (0,0).  This simplifies the state vector because x, y, and psi are all equal to zero.
 
 The latency issue seemed to be a pretty easy issue to handle.  Since the net effect of the latency is to delay the controls actually being applied.  We can simply predict the next state based on the actuation from 2 time steps ago.  Since I set dt as 0.1s or 100ms, this change handles the 100ms delay perfectly.  Essentially from the above equations, I changed:
-
-![Eqn 4](equation_images/eqn4.png =100x)
+$$
+a_t = a_{t-1} \\
+\delta_t = \delta_{t-1}
+$$
 
 This approach seemed to work very well.  I was able to set a target speed of 150mph (though the vehicle never really makes it past about 100mph).  The most important part of my MPC seemed to be the part of the cost function that compounded speed and steering wheel angle.  The penalty was some coefficient * velocity * delta.  This prevents the vehicle from making erratic movements at high speed and significantly stabilized the vehicle path.
 
