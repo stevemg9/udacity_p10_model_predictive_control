@@ -11,15 +11,15 @@ Self-Driving Car Engineer Nanodegree Program
 
 The goal of this project was to develop a Model Predictive Control algorithm to successfully drive a vehicle around the simulate track.  The first step in tackling this problem was to create the model.  In oder to create the model I largely followed the examples and quizzes given in the MPC lessons.  The state vector consisted of 5 variables: X Position, Y Position, Vehicle Orientation, Velocity, Cross Track Error, and Orientation Error. The actuators for this model were acceleration (throttle), and orientation (steering).
 
-![Eqn 1](equation_images/eqn1.png =150x)
+![Eqn 1](equation_images/eqn1.png)
 
 The state was updated each time step with the following equations:
 
-![Eqn 2](equation_images/eqn2.png =375x)
+![Eqn 2](equation_images/eqn2.png)
 
 Where,
 
-![Eqn 3](equation_images/eqn3.png =350x)
+![Eqn 3](equation_images/eqn3.png)
 
 And C0 - C3 are the coefficients for the 3rd order polynomial line fitted by polyfit.
 
@@ -29,7 +29,7 @@ The only preprocessing that I did on the waypoints was to convert them into the 
 
 The latency issue seemed to be a pretty easy issue to handle.  Since the net effect of the latency is to delay the controls actually being applied.  We can simply predict the next state based on the actuation from 2 time steps ago.  Since I set dt as 0.1s or 100ms, this change handles the 100ms delay perfectly.  Essentially from the above equations, I changed:
 
-![Eqn 4](equation_images/eqn4.png =100x)
+![Eqn 4](equation_images/eqn4.png)
 
 This approach seemed to work very well.  I was able to set a target speed of 150mph (though the vehicle never really makes it past about 100mph).  The most important part of my MPC seemed to be the part of the cost function that compounded speed and steering wheel angle.  The penalty was some coefficient * velocity * delta.  This prevents the vehicle from making erratic movements at high speed and significantly stabilized the vehicle path.
 
